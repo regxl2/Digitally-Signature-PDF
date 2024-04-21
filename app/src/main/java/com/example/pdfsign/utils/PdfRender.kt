@@ -1,4 +1,4 @@
-package com.example.pdfsign.screens
+package com.example.pdfsign.utils
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -45,11 +45,11 @@ internal class PdfRender(
         val pdfRenderer: PdfRenderer,
         val coroutineScope: CoroutineScope
     ) {
-        var isLoaded = false
+        private var isLoaded = false
 
-        var job: Job? = null
+        private var job: Job? = null
 
-        val dimension = pdfRenderer.openPage(index).use { currentPage ->
+        private val dimension = pdfRenderer.openPage(index).use { currentPage ->
             Dimension(
                 width = currentPage.width,
                 height = currentPage.height
