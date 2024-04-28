@@ -1,9 +1,9 @@
 package com.example.pdfsign.composables
 
-import android.os.ParcelFileDescriptor
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,32 +14,28 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import com.example.pdfsign.utils.PdfRender
-import java.io.File
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun PDFReader(file: File, navigateToPdfPageEdit: (ImageBitmap) -> Unit) {
+fun PDFReader(pdfRender: PdfRender, navigateToPdfPageEdit: (ImageBitmap) -> Unit) {
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        val pdfRender = PdfRender(
-            fileDescriptor = ParcelFileDescriptor.open(
-                file,
-                ParcelFileDescriptor.MODE_READ_ONLY
-            )
-        )
-        DisposableEffect(key1 = Unit) {
-            onDispose {
-                pdfRender.close()
-            }
-        }
         val pagerState = rememberPagerState {
             pdfRender.pageCount
         }
@@ -52,15 +48,17 @@ fun PDFReader(file: File, navigateToPdfPageEdit: (ImageBitmap) -> Unit) {
                         page.recycle()
                     }
                 }
-                page.pageContent.collectAsState().value?.asImageBitmap()?.let {
+                page.pageContent.collectAsState().value?.asImageBitmap()?.let { imageBitmap ->
                     Image(
-                        bitmap = it,
+                        bitmap = imageBitmap,
                         contentDescription = "Pdf page number: $index",
                         modifier = Modifier
                             .fillMaxSize()
                             .align(Alignment.Center)
-                            .clickable {
-                                navigateToPdfPageEdit(it)
+                            .pointerInput(Unit) {
+                                detectTapGestures(onDoubleTap = {
+                                    navigateToPdfPageEdit(imageBitmap)
+                                })
                             },
                         contentScale = ContentScale.Fit
                     )

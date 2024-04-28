@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-internal class PdfRender(
+class PdfRender(
     private val fileDescriptor: ParcelFileDescriptor
 ) {
     private val pdfRenderer = PdfRenderer(fileDescriptor)

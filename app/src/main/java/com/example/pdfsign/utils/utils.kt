@@ -2,6 +2,8 @@ package com.example.pdfsign.utils
 
 import android.content.Context
 import android.net.Uri
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.IntSize
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
@@ -24,4 +26,33 @@ suspend fun copyExternalFile(context: Context, uri: Uri, finish: suspend (File) 
         inputStream?.close()
         finish.invoke(file)
     }
+}
+
+
+fun Offset.calculateNewOffset(
+    centroid: Offset,
+    pan: Offset,
+    zoom: Float,
+    gestureZoom: Float,
+    size: IntSize
+): Offset {
+    val newScale = maxOf(1f, zoom * gestureZoom)
+    val newOffset = (this + centroid / zoom) -
+            (centroid / newScale + pan / zoom)
+    return Offset(
+        newOffset.x.coerceIn(0f, (size.width / zoom) * (zoom - 1f)),
+        newOffset.y.coerceIn(0f, (size.height / zoom) * (zoom - 1f))
+    )
+}
+
+fun calculateDoubleTapOffset(
+    zoom: Float,
+    size: IntSize,
+    tapOffset: Offset
+): Offset {
+    val newOffset = Offset(tapOffset.x, tapOffset.y)
+    return Offset(
+        newOffset.x.coerceIn(0f, (size.width / zoom) * (zoom - 1f)),
+        newOffset.y.coerceIn(0f, (size.height / zoom) * (zoom - 1f))
+    )
 }

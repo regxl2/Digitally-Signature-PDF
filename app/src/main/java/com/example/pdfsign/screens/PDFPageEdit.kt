@@ -1,25 +1,68 @@
 package com.example.pdfsign.screens
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Create
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.sp
+import com.example.pdfsign.composables.DrawSign
+import com.example.pdfsign.composables.Signature
+import com.example.pdfsign.utils.calculateDoubleTapOffset
+import com.example.pdfsign.utils.calculateNewOffset
+import com.example.pdfsign.viewModels.SharedViewModel
+import kotlinx.coroutines.flow.asFlow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PDFPageEdit(image: ImageBitmap, navigateBackToPdfPicker: ()-> Unit) {
+fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit) {
+    var openDrawSign by remember {
+        mutableStateOf(false)
+    }
+    if (openDrawSign) {
+        BasicAlertDialog(onDismissRequest = { openDrawSign = false }) {
+            DrawSign(modifier = Modifier
+                .fillMaxHeight(0.5F)
+                .fillMaxWidth(), onClickDone = { pathWithSize ->
+                openDrawSign = false
+                viewModel.addPath(pathWithSize)
+            }) {
+                openDrawSign = false
+            }
+        }
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -27,24 +70,86 @@ fun PDFPageEdit(image: ImageBitmap, navigateBackToPdfPicker: ()-> Unit) {
                 navigationIcon = {
                     IconButton(onClick = navigateBackToPdfPicker) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "up button"
+                            imageVector = Icons.Filled.ArrowBack,
+                            contentDescription = "up button",
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
-                )
+                ), actions = {
+                    IconButton(onClick = { openDrawSign = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Create,
+                            contentDescription = "sign",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                }
             )
         }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .padding(paddingValues)
-                .fillMaxSize()
+                .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Image(bitmap = image, contentDescription = null)
+            val image = viewModel.imageState.value
+            if (image != null) {
+                var offset by remember { mutableStateOf(Offset.Zero) }
+                var zoom by remember { mutableFloatStateOf(1f) }
+                val signatures = viewModel.signatures
+                Box(modifier = Modifier
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onDoubleTap = { tapOffset ->
+                                zoom = if (zoom > 1f) 1f else 2f
+                                offset = calculateDoubleTapOffset(zoom, size, tapOffset)
+                            }
+                        )
+                    }
+                    .pointerInput(Unit) {
+                        detectTransformGestures(
+                            onGesture = { centroid, pan, gestureZoom, _ ->
+                                offset = offset.calculateNewOffset(
+                                    centroid, pan, zoom, gestureZoom, size
+                                )
+                                zoom = maxOf(1f, zoom * gestureZoom)
+                            }
+                        )
+                    }
+                    .graphicsLayer {
+                        translationX = -offset.x * zoom
+                        translationY = -offset.y * zoom
+                        scaleX = zoom; scaleY = zoom
+                        transformOrigin = TransformOrigin(0f, 0f)
+                    }, contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clipToBounds(),
+                        bitmap = image,
+                        contentDescription = "pdf page",
+                        contentScale = ContentScale.FillWidth
+                    )
+                    signatures.forEachIndexed { index, pathWithSize ->
+                        Signature(
+                            pathWithSize = pathWithSize,
+                            onClickDelete = {
+                                viewModel.removeSignatureAtIndex(index)
+                            })
+                    }
+                }
+            } else {
+                Text(text = "Error in loading page", fontSize = 24.sp)
+            }
         }
     }
 }
+
+
