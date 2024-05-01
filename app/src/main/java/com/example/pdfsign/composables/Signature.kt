@@ -46,13 +46,13 @@ fun Signature(modifier: Modifier = Modifier, pathInfo: PathInfo, onClickDelete: 
     val canvasHeight = with(localDensity) { pathInfo.height.toDp() }
     val canvasWidth = with(localDensity) { pathInfo.width.toDp() }
     var canvasScale by remember {
-        mutableFloatStateOf(1f)
+        mutableFloatStateOf(pathInfo.scale)
     }
     var canvasOffsetX by remember {
-        mutableFloatStateOf(0f)
+        mutableFloatStateOf(pathInfo.offset.x)
     }
     var canvasOffsetY by remember {
-        mutableFloatStateOf(0f)
+        mutableFloatStateOf(pathInfo.offset.y)
     }
     Box(
         modifier
@@ -69,6 +69,7 @@ fun Signature(modifier: Modifier = Modifier, pathInfo: PathInfo, onClickDelete: 
                     // with scale we controlling amount of drag. Therefore, I am multiplying scale
                     canvasOffsetX += dragAmount.x * canvasScale
                     canvasOffsetY += dragAmount.y * canvasScale
+                    pathInfo.offset = Offset(x = canvasOffsetX, y = canvasOffsetY)
                 }
             }
     ) {
@@ -113,6 +114,7 @@ fun Signature(modifier: Modifier = Modifier, pathInfo: PathInfo, onClickDelete: 
                         change.consume()
                         val newSize = canvasScale + scaleOnDrag(dragAmount)
                         canvasScale = minMaxScale(newSize)
+                        pathInfo.scale = canvasScale
                     }
                 }) {
                 Icon(

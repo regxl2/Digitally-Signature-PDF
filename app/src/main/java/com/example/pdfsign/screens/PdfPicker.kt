@@ -34,7 +34,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextAlign
@@ -45,18 +44,19 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.example.pdfsign.composables.PDFReader
 import com.example.pdfsign.utils.PdfRender
 import com.example.pdfsign.utils.copyExternalFile
+import com.example.pdfsign.viewModels.ImageInfo
 import com.example.pdfsign.viewModels.SharedViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PdfPicker(viewModel: SharedViewModel, navigateToPdfPageEdit: (ImageBitmap) -> Unit) {
+fun PdfPicker(viewModel: SharedViewModel, navigateToPdfPageEdit: (ImageInfo) -> Unit) {
     val pdfRender = viewModel.pdfRender.value
     var isProgressVisible by remember {
         mutableStateOf(false)
     }
-    val lifecycleOwner = LocalLifecycleOwner.current
+//    val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val pdfPickerLauncher =
@@ -79,17 +79,6 @@ fun PdfPicker(viewModel: SharedViewModel, navigateToPdfPageEdit: (ImageBitmap) -
                 }
             }
         }
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_DESTROY) {
-                viewModel.resetPdfRender()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -117,16 +106,29 @@ fun PdfPicker(viewModel: SharedViewModel, navigateToPdfPageEdit: (ImageBitmap) -
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(modifier = Modifier.fillMaxWidth()){
+//                    DisposableEffect(lifecycleOwner) {
+//                        val observer = LifecycleEventObserver { _, event ->
+//                            if (event == Lifecycle.Event.ON_DESTROY) {
+//                                viewModel.resetPdfRender()
+//                            }
+//                        }
+//                        lifecycleOwner.lifecycle.addObserver(observer)
+//                        onDispose {
+//                            lifecycleOwner.lifecycle.removeObserver(observer)
+//                        }
+//                    }
                     IconButton(modifier = Modifier
                         .padding(8.dp)
                         .align(Alignment.CenterEnd), onClick = {
-                        viewModel.resetPdfRender()
+                        scope.launch {
+                            viewModel.resetHashMap()
+                            viewModel.resetPdfRender()
+                        }
                     }) {
                         Icon(imageVector = Icons.Default.Clear, contentDescription ="close pdf button")
                     }
                 }
                 PDFReader(pdfRender = pdfRender, navigateToPdfPageEdit = navigateToPdfPageEdit)
-
             }
         } else {
             ButtonProgressScreen(

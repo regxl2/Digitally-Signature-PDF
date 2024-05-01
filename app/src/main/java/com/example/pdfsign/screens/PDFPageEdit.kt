@@ -49,14 +49,17 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
     var openDrawSign by remember {
         mutableStateOf(false)
     }
+    val imageIndex = viewModel.imageState.value?.index
     if (openDrawSign) {
         BasicAlertDialog(onDismissRequest = { openDrawSign = false }) {
             DrawSign(modifier = Modifier
                 .fillMaxHeight(0.5F)
                 .fillMaxWidth(), onClickDone = { pathInfo ->
                 openDrawSign = false
-                viewModel.addPath(pathInfo)
-                viewModel.addIsVisible(true)
+                imageIndex?.let {
+                    viewModel.addPath(it, pathInfo)
+                    viewModel.addIsVisible(it, true)
+                }
             }) {
                 openDrawSign = false
             }
@@ -97,12 +100,12 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            val image = viewModel.imageIndex.value
+            val image = viewModel.imageState.value?.imageBitmap
             if (image != null) {
                 var offset by remember { mutableStateOf(Offset.Zero) }
                 var zoom by remember { mutableFloatStateOf(1f) }
-                val signatures = viewModel.signatures
-                val isSignVisibleList = viewModel.isSignVisibleList
+                val signatures = viewModel.hashMap[imageIndex]!!.signatures
+                val isSignVisibleList = viewModel.hashMap[imageIndex]!!.isSignVisible
                 Box(modifier = Modifier
                     .pointerInput(Unit) {
                         detectTapGestures(
@@ -111,7 +114,9 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
                                 offset = calculateDoubleTapOffset(zoom, size, tapOffset)
                             },
                             onTap = {
-                                viewModel.resetIsSignVisibleList()
+                                imageIndex?.let {index ->
+                                    viewModel.resetIsSignVisibleList(index)
+                                }
                             }
                         )
                     }
@@ -144,7 +149,9 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
                         Signature(
                             pathInfo = pathInfo,
                             onClickDelete = {
-                                viewModel.removeSignatureAtIndex(index)
+                                imageIndex?.let {
+                                    viewModel.removeSignatureAtIndex(imageIndex, index)
+                                }
                             },
                             isVisible =  isSignVisibleList[index],
                             changeVisibility = { isSignVisibleList[index] = true}

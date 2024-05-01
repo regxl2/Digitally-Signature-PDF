@@ -20,8 +20,7 @@ import kotlinx.parcelize.RawValue
 
 enum class Screen {
     PdfPicker,
-    PdfPageEdit,
-    DrawSign
+    PdfPageEdit
 }
 
 @Parcelize
@@ -34,8 +33,8 @@ fun RootScreen() {
     val sharedViewModel: SharedViewModel = viewModel()
     NavHost(navController = navController, startDestination = Screen.PdfPicker.name) {
         composable(route = Screen.PdfPicker.name, enterTransition = { slideInAnimation() }) {
-            PdfPicker(viewModel = sharedViewModel) { image ->
-                sharedViewModel.setImageState(image)
+            PdfPicker(viewModel = sharedViewModel) { imageInfo ->
+                sharedViewModel.setImageState(imageInfo)
                 navController.navigate(route = Screen.PdfPageEdit.name)
             }
         }
