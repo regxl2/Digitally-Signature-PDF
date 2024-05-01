@@ -69,8 +69,9 @@ fun PdfPicker(viewModel: SharedViewModel, navigateToPdfPageEdit: (ImageBitmap) -
                             PdfRender(
                                 fileDescriptor = ParcelFileDescriptor.open(
                                     file,
-                                    ParcelFileDescriptor.MODE_READ_ONLY
-                                )
+                                    ParcelFileDescriptor.MODE_READ_WRITE
+                                ),
+                                context = context
                             )
                         )
                     }
@@ -81,7 +82,7 @@ fun PdfPicker(viewModel: SharedViewModel, navigateToPdfPageEdit: (ImageBitmap) -
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_DESTROY) {
-                pdfRender?.close()
+                viewModel.resetPdfRender()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -89,6 +90,7 @@ fun PdfPicker(viewModel: SharedViewModel, navigateToPdfPageEdit: (ImageBitmap) -
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -115,9 +117,10 @@ fun PdfPicker(viewModel: SharedViewModel, navigateToPdfPageEdit: (ImageBitmap) -
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(modifier = Modifier.fillMaxWidth()){
-                    IconButton(modifier = Modifier.padding(8.dp).align(Alignment.CenterEnd), onClick = {
+                    IconButton(modifier = Modifier
+                        .padding(8.dp)
+                        .align(Alignment.CenterEnd), onClick = {
                         viewModel.resetPdfRender()
-                        pdfRender.close()
                     }) {
                         Icon(imageVector = Icons.Default.Clear, contentDescription ="close pdf button")
                     }

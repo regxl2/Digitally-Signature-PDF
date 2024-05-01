@@ -2,6 +2,7 @@ package com.example.pdfsign
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -33,6 +35,9 @@ import androidx.compose.ui.unit.dp
 fun Experiment() {
     var width = remember { 0 }
     var height = remember { 0 }
+    var isVisible by remember {
+        mutableStateOf(true)
+    }
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
@@ -65,22 +70,24 @@ fun Experiment() {
                 LocalDensity.current
             ) { 50.dp.toPx() }
             val w = with(LocalDensity.current) { 100.dp.toPx() }
-            Box(
-                modifier = Modifier
-                    .height(50.dp)
-                    .width(100.dp)
-                    .offset(
-                        x = with(LocalDensity.current) { offsetX.toDp() },
-                        y = with(LocalDensity.current) { offsetY.toDp() })
-                    .background(color = Color.Green)
-                    .pointerInput(Unit) {
-                        detectDragGestures { change, dragAmount ->
-                            change.consume()
-                            offsetX = (offsetX + dragAmount.x).coerceIn(0f, width.toFloat() - w)
-                            offsetY = (offsetY + dragAmount.y).coerceIn(0f, height.toFloat() - h)
+            if(isVisible){
+                Box(
+                    modifier = Modifier
+                        .height(50.dp)
+                        .width(100.dp)
+                        .offset(
+                            x = with(LocalDensity.current) { offsetX.toDp() },
+                            y = with(LocalDensity.current) { offsetY.toDp() })
+                        .background(color = Color.Green)
+                        .pointerInput(Unit) {
+                            detectDragGestures { change, dragAmount ->
+                                change.consume()
+                                offsetX = (offsetX + dragAmount.x).coerceIn(0f, width.toFloat() - w)
+                                offsetY = (offsetY + dragAmount.y).coerceIn(0f, height.toFloat() - h)
+                            }
                         }
-                    }
-            )
+                )
+            }
         }
     }
 }

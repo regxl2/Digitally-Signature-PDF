@@ -27,7 +27,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,7 +42,6 @@ import com.example.pdfsign.composables.Signature
 import com.example.pdfsign.utils.calculateDoubleTapOffset
 import com.example.pdfsign.utils.calculateNewOffset
 import com.example.pdfsign.viewModels.SharedViewModel
-import kotlinx.coroutines.flow.asFlow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,9 +53,10 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
         BasicAlertDialog(onDismissRequest = { openDrawSign = false }) {
             DrawSign(modifier = Modifier
                 .fillMaxHeight(0.5F)
-                .fillMaxWidth(), onClickDone = { pathWithSize ->
+                .fillMaxWidth(), onClickDone = { pathInfo ->
                 openDrawSign = false
-                viewModel.addPath(pathWithSize)
+                viewModel.addPath(pathInfo)
+                viewModel.addIsVisible(true)
             }) {
                 openDrawSign = false
             }
@@ -98,17 +97,21 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            val image = viewModel.imageState.value
+            val image = viewModel.imageIndex.value
             if (image != null) {
                 var offset by remember { mutableStateOf(Offset.Zero) }
                 var zoom by remember { mutableFloatStateOf(1f) }
                 val signatures = viewModel.signatures
+                val isSignVisibleList = viewModel.isSignVisibleList
                 Box(modifier = Modifier
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onDoubleTap = { tapOffset ->
                                 zoom = if (zoom > 1f) 1f else 2f
                                 offset = calculateDoubleTapOffset(zoom, size, tapOffset)
+                            },
+                            onTap = {
+                                viewModel.resetIsSignVisibleList()
                             }
                         )
                     }
@@ -137,12 +140,15 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
                         contentDescription = "pdf page",
                         contentScale = ContentScale.FillWidth
                     )
-                    signatures.forEachIndexed { index, pathWithSize ->
+                    signatures.forEachIndexed { index, pathInfo ->
                         Signature(
-                            pathWithSize = pathWithSize,
+                            pathInfo = pathInfo,
                             onClickDelete = {
                                 viewModel.removeSignatureAtIndex(index)
-                            })
+                            },
+                            isVisible =  isSignVisibleList[index],
+                            changeVisibility = { isSignVisibleList[index] = true}
+                        )
                     }
                 }
             } else {

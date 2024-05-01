@@ -34,7 +34,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.pdfsign.viewModels.PathWithSize
+import com.example.pdfsign.viewModels.PathInfo
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -46,17 +46,21 @@ enum class MotionEvent {
     Up
 }
 
+data class PathOffset(
+    var xMin: Float = Float.POSITIVE_INFINITY,
+    var yMin: Float = Float.POSITIVE_INFINITY,
+    var xMax: Float = Float.NEGATIVE_INFINITY,
+    var yMax: Float = Float.NEGATIVE_INFINITY
+)
+
 @Composable
 fun DrawSign(
     modifier: Modifier = Modifier,
-    onClickDone: (PathWithSize) -> Unit,
+    onClickDone: (PathInfo) -> Unit,
     onClickCancel: () -> Unit
 ) {
     val path = remember { Path() }
-    var offsetXMin = remember { Float.POSITIVE_INFINITY }
-    var offsetYMin = remember { Float.POSITIVE_INFINITY }
-    var offsetXMax = remember { Float.NEGATIVE_INFINITY }
-    var offsetYMax = remember { Float.NEGATIVE_INFINITY }
+    val pathOffset = remember { PathOffset() }
     var prevOffset by remember { mutableStateOf(Offset.Unspecified) }
     var currOffset by remember { mutableStateOf(Offset.Unspecified) }
     var motionEvent by remember { mutableStateOf(MotionEvent.Idle) }
@@ -68,7 +72,7 @@ fun DrawSign(
                 .background(MaterialTheme.colorScheme.primary)
                 .padding(8.dp), verticalAlignment = Alignment.CenterVertically
         ) {
-            SignButton(onClick = onClickCancel, text = "Cancel", enabled = true)
+            SignButton(onClick = onClickCancel, text = "Cancel")
             Text(
                 modifier = Modifier.weight(1f),
                 text = "Place Signature",
@@ -76,12 +80,13 @@ fun DrawSign(
             )
             SignButton(onClick = {
                 if (!path.isEmpty) {
-                    path.translate(Offset(-offsetXMin, -offsetYMin))
+                    path.translate(Offset(-pathOffset.xMin, -pathOffset.yMin))
+                    println(pathOffset)
                     onClickDone(
-                        PathWithSize(
+                        PathInfo(
                             path = path,
-                            width = (offsetXMax - offsetXMin),
-                            height = (offsetYMax - offsetYMin)
+                            width = (pathOffset.xMax - pathOffset.xMin),
+                            height = (pathOffset.yMax - pathOffset.yMin)
                         )
                     )
                 }
@@ -98,10 +103,10 @@ fun DrawSign(
                         val down = awaitFirstDown()
                         var waitAfterDown = false
                         currOffset = down.position
-                        offsetXMin = minOf(offsetXMin, currOffset.x)
-                        offsetYMin = minOf(offsetYMin, currOffset.y)
-                        offsetXMax = maxOf(offsetXMax, currOffset.x)
-                        offsetYMax = maxOf(offsetYMax, currOffset.y)
+                        pathOffset.xMin = minOf(pathOffset.xMin, currOffset.x)
+                        pathOffset.yMin = minOf(pathOffset.yMin, currOffset.y)
+                        pathOffset.xMax = maxOf(pathOffset.xMax, currOffset.x)
+                        pathOffset.yMax = maxOf(pathOffset.yMax, currOffset.y)
                         prevOffset = down.position
                         motionEvent = MotionEvent.Down
                         scope.launch {
@@ -113,10 +118,10 @@ fun DrawSign(
                             val event = awaitPointerEvent()
                             if (waitAfterDown) {
                                 currOffset = event.changes.first().position
-                                offsetXMin = minOf(offsetXMin, currOffset.x)
-                                offsetYMin = minOf(offsetYMin, currOffset.y)
-                                offsetXMax = maxOf(offsetXMax, currOffset.x)
-                                offsetYMax = maxOf(offsetYMax, currOffset.y)
+                                pathOffset.xMin = minOf(pathOffset.xMin, currOffset.x)
+                                pathOffset.yMin = minOf(pathOffset.yMin, currOffset.y)
+                                pathOffset.xMax = maxOf(pathOffset.xMax, currOffset.x)
+                                pathOffset.yMax = maxOf(pathOffset.yMax, currOffset.y)
                                 motionEvent = MotionEvent.Move
                             }
                         } while (event.changes.any { pointerInputChange ->
@@ -175,8 +180,7 @@ fun DrawSign(
                     path.reset()
                     motionEvent = MotionEvent.Idle
                 },
-                text = "Clear",
-                enabled = true
+                text = "Clear"
             )
         }
     }

@@ -1,9 +1,11 @@
 package com.example.pdfsign.utils
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
+import androidx.compose.ui.unit.Density
 import androidx.core.graphics.createBitmap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -15,19 +17,20 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 class PdfRender(
-    private val fileDescriptor: ParcelFileDescriptor
+    private val fileDescriptor: ParcelFileDescriptor,
+    private val context: Context
 ) {
     private val pdfRenderer = PdfRenderer(fileDescriptor)
     val pageCount get() = pdfRenderer.pageCount
     private val mutex: Mutex = Mutex()
     private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-
     val pageLists: List<Page> = List(pdfRenderer.pageCount) {
         Page(
             index = it,
             pdfRenderer = pdfRenderer,
             coroutineScope = coroutineScope,
-            mutex = mutex
+            mutex = mutex,
+            density = context.resources.displayMetrics.density
         )
     }
 
@@ -43,7 +46,8 @@ class PdfRender(
         val mutex: Mutex,
         val index: Int,
         val pdfRenderer: PdfRenderer,
-        val coroutineScope: CoroutineScope
+        val coroutineScope: CoroutineScope,
+        val density: Float
     ) {
         private var isLoaded = false
 
@@ -70,8 +74,8 @@ class PdfRender(
                         val newBitmap: Bitmap
                         pdfRenderer.openPage(index).use { currentPage ->
                             newBitmap = createBlankBitmap(
-                                width = currentPage.width,
-                                height = currentPage.height
+                                width = currentPage.width*density.toInt(),
+                                height = currentPage.height*density.toInt()
                             )
                             currentPage.render(
                                 newBitmap,
