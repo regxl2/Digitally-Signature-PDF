@@ -1,5 +1,6 @@
 package com.example.pdfsign.viewModels
 
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -30,6 +31,9 @@ class SharedViewModel : ViewModel() {
     var hashMap = hashMapOf<Int, ImageSignaturesInfo>()
         private set
 
+    var pdfRenderAlt = hashMapOf<Int, MutableState<ImageBitmap>>()
+        private set
+
     fun setImageState(imageInfo: ImageInfo) {
         imageState.value = imageInfo
         if(hashMap[imageInfo.index]==null){
@@ -45,9 +49,22 @@ class SharedViewModel : ViewModel() {
         hashMap[pageIndex]?.signatures?.add(pathInfo)
     }
 
+    fun addPdfRenderImage(index: Int, bitmap: ImageBitmap){
+        hashMap[index]?.let { imageSignaturesInfo ->
+            if(imageSignaturesInfo.signatures.size > 0){
+                pdfRenderAlt[index] = mutableStateOf(bitmap)
+                println("image saved")
+            }
+        }
+    }
+
     fun removeSignatureAtIndex(pageIndex: Int, signIndex: Int) {
         viewModelScope.launch(Dispatchers.Default) {
             hashMap[pageIndex]?.signatures?.removeAt(signIndex)
+            if(hashMap[pageIndex]?.signatures?.size==0){
+                pdfRenderAlt.remove(pageIndex)
+                println("removed image")
+            }
         }
     }
 
@@ -65,9 +82,10 @@ class SharedViewModel : ViewModel() {
         }
     }
 
-    fun resetHashMap(){
+    fun resetHashMaps(){
         viewModelScope.launch(Dispatchers.Default){
             hashMap.clear()
+            pdfRenderAlt.clear()
         }
     }
     fun resetPdfRender() {
