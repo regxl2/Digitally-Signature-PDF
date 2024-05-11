@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -48,10 +49,14 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.sp
+import com.example.pdfsign.R
 import com.example.pdfsign.composables.DrawSign
 import com.example.pdfsign.composables.ImageSignature
 import com.example.pdfsign.composables.Signature
+import com.example.pdfsign.composables.TextSign
+import com.example.pdfsign.composables.TextSignature
 import com.example.pdfsign.utils.calculateDoubleTapOffset
 import com.example.pdfsign.utils.calculateNewOffset
 import com.example.pdfsign.utils.getBitmapFromUri
@@ -68,6 +73,9 @@ import kotlinx.coroutines.launch
 @Composable
 fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit) {
     var openDrawSign by remember {
+        mutableStateOf(false)
+    }
+    var openTextSign by remember {
         mutableStateOf(false)
     }
     var zoom by remember { mutableFloatStateOf(1f) }
@@ -102,6 +110,19 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
             }
         }
     }
+    if (openTextSign) {
+        BasicAlertDialog(onDismissRequest = { openDrawSign = false }) {
+            TextSign(modifier = Modifier
+                .fillMaxWidth(), onClickDone = { name ->
+                openTextSign = false
+                imageIndex?.let {
+                    viewModel.addTextSignature(it, name)
+                }
+            }) {
+                openTextSign = false
+            }
+        }
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -127,15 +148,22 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
                         )
                     }) {
                         Icon(
-                            imageVector = Icons.Default.Add,
+                            painter = painterResource(id = R.drawable.image),
                             contentDescription = "add image signature",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                    IconButton(onClick = { openTextSign = true }) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.text),
+                            contentDescription = "add text signature",
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                     IconButton(onClick = { openDrawSign = true }) {
                         Icon(
-                            imageVector = Icons.Default.Create,
-                            contentDescription = "sign",
+                            painter = painterResource(id = R.drawable.draw),
+                            contentDescription = "draw signature",
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
@@ -159,7 +187,7 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
                         Toast.makeText(localContext, "Saved the changes", Toast.LENGTH_LONG).show()
                     }) {
                         Icon(
-                            imageVector = Icons.Default.Done,
+                            painter = painterResource(id = R.drawable.save),
                             contentDescription = "save changes",
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
@@ -182,6 +210,9 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
                 val imageSignature = viewModel.imageSignaturesInfoHashMap[imageIndex]!!.signatures
                 val isISignVisibleList =
                     viewModel.imageSignaturesInfoHashMap[imageIndex]!!.isSignVisible
+                val textSignature = viewModel.textSignaturesInfoHashMap[imageIndex]!!.signatures
+                val isTSignVisibleList =
+                    viewModel.textSignaturesInfoHashMap[imageIndex]!!.isSignVisible
                 Box(modifier = Modifier
                     .pointerInput(Unit) {
                         detectTapGestures(
@@ -244,6 +275,18 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
                             },
                             isVisible = isSignVisibleList[index],
                             changeVisibility = { isSignVisibleList[index] = true }
+                        )
+                    }
+                    textSignature.forEachIndexed { index, tSignatureInfo ->
+                        TextSignature(
+                            tSignatureInfo = tSignatureInfo,
+                            onClickDelete = {
+                                imageIndex?.let {
+                                    viewModel.removeTextSignatureAtIndex(imageIndex, index)
+                                }
+                            },
+                            isVisible = isTSignVisibleList[index],
+                            changeVisibility = { isTSignVisibleList[index] = true }
                         )
                     }
                 }

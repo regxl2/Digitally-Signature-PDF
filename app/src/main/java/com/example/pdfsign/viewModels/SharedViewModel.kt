@@ -37,6 +37,17 @@ data class ImageSignaturesInfo(
     val isSignVisible: SnapshotStateList<Boolean> = mutableStateListOf<Boolean>()
 )
 
+data class TSignatureInfo(
+    val name: String,
+    var offset: Offset = Offset.Zero,
+    var scale: Float = 1f
+)
+
+data class TextSignaturesInfo(
+    val signatures: SnapshotStateList<TSignatureInfo> = mutableStateListOf<TSignatureInfo>(),
+    val isSignVisible: SnapshotStateList<Boolean> = mutableStateListOf<Boolean>()
+)
+
 data class ImageInfo(val imageBitmap: ImageBitmap, val index: Int)
 
 class SharedViewModel : ViewModel() {
@@ -52,6 +63,9 @@ class SharedViewModel : ViewModel() {
     var imageSignaturesInfoHashMap = hashMapOf<Int, ImageSignaturesInfo>()
         private set
 
+    var textSignaturesInfoHashMap = hashMapOf<Int, TextSignaturesInfo>()
+        private set
+
     var pdfRenderAltHashMap = hashMapOf<Int, MutableState<ImageBitmap>>()
         private set
 
@@ -62,6 +76,9 @@ class SharedViewModel : ViewModel() {
         }
         if (imageSignaturesInfoHashMap[imageInfo.index] == null) {
             imageSignaturesInfoHashMap[imageInfo.index] = ImageSignaturesInfo()
+        }
+        if (textSignaturesInfoHashMap[imageInfo.index] == null) {
+            textSignaturesInfoHashMap[imageInfo.index] = TextSignaturesInfo()
         }
     }
 
@@ -79,15 +96,26 @@ class SharedViewModel : ViewModel() {
         imageSignaturesInfoHashMap[pageIndex]?.isSignVisible?.add(true)
     }
 
+    fun addTextSignature(pageIndex: Int, name: String) {
+        textSignaturesInfoHashMap[pageIndex]?.signatures?.add(TSignatureInfo(name))
+        textSignaturesInfoHashMap[pageIndex]?.isSignVisible?.add(true)
+    }
+
     fun addPdfRenderAltImage(index: Int, bitmap: ImageBitmap) {
         signaturesInfoHashMap[index]?.let { signaturesInfo ->
-            if (signaturesInfo.signatures.size > 0 ) {
+            if (signaturesInfo.signatures.size > 0) {
                 pdfRenderAltHashMap[index] = mutableStateOf(bitmap)
                 println("image saved")
             }
         }
-        imageSignaturesInfoHashMap[index]?.let{imageSignaturesInfo ->
-            if(imageSignaturesInfo.signatures.size > 0){
+        imageSignaturesInfoHashMap[index]?.let { imageSignaturesInfo ->
+            if (imageSignaturesInfo.signatures.size > 0) {
+                pdfRenderAltHashMap[index] = mutableStateOf(bitmap)
+                println("image saved")
+            }
+        }
+        textSignaturesInfoHashMap[index]?.let { textSignaturesInfo ->
+            if (textSignaturesInfo.signatures.size > 0) {
                 pdfRenderAltHashMap[index] = mutableStateOf(bitmap)
                 println("image saved")
             }
@@ -97,7 +125,7 @@ class SharedViewModel : ViewModel() {
     fun removeSignatureAtIndex(pageIndex: Int, signIndex: Int) {
         viewModelScope.launch(Dispatchers.Default) {
             signaturesInfoHashMap[pageIndex]?.signatures?.removeAt(signIndex)
-            if (signaturesInfoHashMap[pageIndex]?.signatures?.size == 0 && imageSignaturesInfoHashMap[pageIndex]?.signatures?.size == 0) {
+            if (removeCheck(pageIndex)) {
                 pdfRenderAltHashMap.remove(pageIndex)
                 println("removed image")
             }
@@ -107,11 +135,23 @@ class SharedViewModel : ViewModel() {
     fun removeImageSignatureAtIndex(pageIndex: Int, signIndex: Int) {
         viewModelScope.launch(Dispatchers.Default) {
             imageSignaturesInfoHashMap[pageIndex]?.signatures?.removeAt(signIndex)
-            if (imageSignaturesInfoHashMap[pageIndex]?.signatures?.size == 0 && signaturesInfoHashMap[pageIndex]?.signatures?.size == 0) {
+            if (removeCheck(pageIndex)) {
                 pdfRenderAltHashMap.remove(pageIndex)
                 println("removed image")
             }
         }
+    }
+
+    fun removeTextSignatureAtIndex(pageIndex: Int, signIndex: Int) {
+        textSignaturesInfoHashMap[pageIndex]?.signatures?.removeAt(signIndex)
+        if (removeCheck(pageIndex)) {
+            pdfRenderAltHashMap.remove(pageIndex)
+            println("removed image")
+        }
+    }
+
+    private fun removeCheck(pageIndex: Int): Boolean {
+        return imageSignaturesInfoHashMap[pageIndex]?.signatures?.size == 0 && signaturesInfoHashMap[pageIndex]?.signatures?.size == 0 && textSignaturesInfoHashMap[pageIndex]?.signatures?.size == 0
     }
 
     fun resetIsSignAllVisibleList(pageIndex: Int) {
@@ -126,6 +166,11 @@ class SharedViewModel : ViewModel() {
                     list[i] = false
                 }
             }
+            textSignaturesInfoHashMap[pageIndex]?.isSignVisible?.let { list ->
+                for (i in 0 until list.size) {
+                    list[i] = false
+                }
+            }
         }
     }
 
@@ -134,6 +179,7 @@ class SharedViewModel : ViewModel() {
             signaturesInfoHashMap.clear()
             pdfRenderAltHashMap.clear()
             imageSignaturesInfoHashMap.clear()
+            textSignaturesInfoHashMap.clear()
         }
     }
 
