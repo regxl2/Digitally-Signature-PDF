@@ -112,7 +112,7 @@ fun PdfPicker(viewModel: SharedViewModel, navigateToPdfPageEdit: (ImageInfo) -> 
                         Icon(imageVector = Icons.Default.Clear, contentDescription ="close pdf button")
                     }
                 }
-                PDFReader(pdfImageAlt = viewModel.pdfRenderAlt, pdfRender = pdfRender, navigateToPdfPageEdit = navigateToPdfPageEdit)
+                PDFReader(pdfImageAlt = viewModel.pdfRenderAltHashMap, pdfRender = pdfRender, navigateToPdfPageEdit = navigateToPdfPageEdit)
             }
         } else {
             ButtonProgressScreen(

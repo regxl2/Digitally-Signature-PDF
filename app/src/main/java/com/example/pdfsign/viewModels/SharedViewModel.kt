@@ -13,9 +13,27 @@ import com.example.pdfsign.utils.PdfRender
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-data class PathInfo(val path: Path, val width: Float, val height: Float, var offset: Offset = Offset.Zero, var scale: Float = 1f)
-data class ImageSignaturesInfo(
+data class PathInfo(
+    val path: Path,
+    val width: Float,
+    val height: Float,
+    var offset: Offset = Offset.Zero,
+    var scale: Float = 1f
+)
+
+data class SignaturesInfo(
     val signatures: SnapshotStateList<PathInfo> = mutableStateListOf<PathInfo>(),
+    val isSignVisible: SnapshotStateList<Boolean> = mutableStateListOf<Boolean>()
+)
+
+data class ISignatureInfo(
+    val bitmap: ImageBitmap,
+    var offset: Offset = Offset.Zero,
+    var scale: Float = 1f
+)
+
+data class ImageSignaturesInfo(
+    val signatures: SnapshotStateList<ISignatureInfo> = mutableStateListOf<ISignatureInfo>(),
     val isSignVisible: SnapshotStateList<Boolean> = mutableStateListOf<Boolean>()
 )
 
@@ -28,16 +46,22 @@ class SharedViewModel : ViewModel() {
     var pdfRender = mutableStateOf<PdfRender?>(null)
         private set
 
-    var hashMap = hashMapOf<Int, ImageSignaturesInfo>()
+    var signaturesInfoHashMap = hashMapOf<Int, SignaturesInfo>()
         private set
 
-    var pdfRenderAlt = hashMapOf<Int, MutableState<ImageBitmap>>()
+    var imageSignaturesInfoHashMap = hashMapOf<Int, ImageSignaturesInfo>()
+        private set
+
+    var pdfRenderAltHashMap = hashMapOf<Int, MutableState<ImageBitmap>>()
         private set
 
     fun setImageState(imageInfo: ImageInfo) {
         imageState.value = imageInfo
-        if(hashMap[imageInfo.index]==null){
-            hashMap[imageInfo.index] = ImageSignaturesInfo()
+        if (signaturesInfoHashMap[imageInfo.index] == null) {
+            signaturesInfoHashMap[imageInfo.index] = SignaturesInfo()
+        }
+        if (imageSignaturesInfoHashMap[imageInfo.index] == null) {
+            imageSignaturesInfoHashMap[imageInfo.index] = ImageSignaturesInfo()
         }
     }
 
@@ -45,14 +69,26 @@ class SharedViewModel : ViewModel() {
         this.pdfRender.value = pdfRender
     }
 
-    fun addPath(pageIndex: Int, pathInfo: PathInfo) {
-        hashMap[pageIndex]?.signatures?.add(pathInfo)
+    fun addSignature(pageIndex: Int, pathInfo: PathInfo) {
+        signaturesInfoHashMap[pageIndex]?.signatures?.add(pathInfo)
+        signaturesInfoHashMap[pageIndex]?.isSignVisible?.add(true)
     }
 
-    fun addPdfRenderImage(index: Int, bitmap: ImageBitmap){
-        hashMap[index]?.let { imageSignaturesInfo ->
+    fun addImageSignature(pageIndex: Int, bitmap: ImageBitmap) {
+        imageSignaturesInfoHashMap[pageIndex]?.signatures?.add(ISignatureInfo(bitmap))
+        imageSignaturesInfoHashMap[pageIndex]?.isSignVisible?.add(true)
+    }
+
+    fun addPdfRenderAltImage(index: Int, bitmap: ImageBitmap) {
+        signaturesInfoHashMap[index]?.let { signaturesInfo ->
+            if (signaturesInfo.signatures.size > 0 ) {
+                pdfRenderAltHashMap[index] = mutableStateOf(bitmap)
+                println("image saved")
+            }
+        }
+        imageSignaturesInfoHashMap[index]?.let{imageSignaturesInfo ->
             if(imageSignaturesInfo.signatures.size > 0){
-                pdfRenderAlt[index] = mutableStateOf(bitmap)
+                pdfRenderAltHashMap[index] = mutableStateOf(bitmap)
                 println("image saved")
             }
         }
@@ -60,34 +96,47 @@ class SharedViewModel : ViewModel() {
 
     fun removeSignatureAtIndex(pageIndex: Int, signIndex: Int) {
         viewModelScope.launch(Dispatchers.Default) {
-            hashMap[pageIndex]?.signatures?.removeAt(signIndex)
-            if(hashMap[pageIndex]?.signatures?.size==0){
-                pdfRenderAlt.remove(pageIndex)
+            signaturesInfoHashMap[pageIndex]?.signatures?.removeAt(signIndex)
+            if (signaturesInfoHashMap[pageIndex]?.signatures?.size == 0 && imageSignaturesInfoHashMap[pageIndex]?.signatures?.size == 0) {
+                pdfRenderAltHashMap.remove(pageIndex)
                 println("removed image")
             }
         }
     }
 
-    fun addIsVisible(pageIndex: Int, boolean: Boolean) {
-        hashMap[pageIndex]?.isSignVisible?.add(boolean)
+    fun removeImageSignatureAtIndex(pageIndex: Int, signIndex: Int) {
+        viewModelScope.launch(Dispatchers.Default) {
+            imageSignaturesInfoHashMap[pageIndex]?.signatures?.removeAt(signIndex)
+            if (imageSignaturesInfoHashMap[pageIndex]?.signatures?.size == 0 && signaturesInfoHashMap[pageIndex]?.signatures?.size == 0) {
+                pdfRenderAltHashMap.remove(pageIndex)
+                println("removed image")
+            }
+        }
     }
 
-    fun resetIsSignVisibleList(pageIndex: Int) {
-        viewModelScope.launch(Dispatchers.Default){
-            hashMap[pageIndex]?.isSignVisible?.let {list->
-                for(i in 0 until list.size){
+    fun resetIsSignAllVisibleList(pageIndex: Int) {
+        viewModelScope.launch(Dispatchers.Default) {
+            signaturesInfoHashMap[pageIndex]?.isSignVisible?.let { list ->
+                for (i in 0 until list.size) {
+                    list[i] = false
+                }
+            }
+            imageSignaturesInfoHashMap[pageIndex]?.isSignVisible?.let { list ->
+                for (i in 0 until list.size) {
                     list[i] = false
                 }
             }
         }
     }
 
-    fun resetHashMaps(){
-        viewModelScope.launch(Dispatchers.Default){
-            hashMap.clear()
-            pdfRenderAlt.clear()
+    fun resetHashMaps() {
+        viewModelScope.launch(Dispatchers.Default) {
+            signaturesInfoHashMap.clear()
+            pdfRenderAltHashMap.clear()
+            imageSignaturesInfoHashMap.clear()
         }
     }
+
     fun resetPdfRender() {
         viewModelScope.launch {
             pdfRender.value?.close()

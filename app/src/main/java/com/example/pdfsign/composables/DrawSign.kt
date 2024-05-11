@@ -76,7 +76,8 @@ fun DrawSign(
             Text(
                 modifier = Modifier.weight(1f),
                 text = "Place Signature",
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onPrimary
             )
             SignButton(onClick = {
                 if (!path.isEmpty) {

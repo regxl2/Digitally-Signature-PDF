@@ -1,6 +1,6 @@
 package com.example.pdfsign.composables
 
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,36 +27,35 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.example.pdfsign.viewModels.PathInfo
+import com.example.pdfsign.viewModels.ISignatureInfo
 
 @Composable
-fun Signature(modifier: Modifier = Modifier, pathInfo: PathInfo, onClickDelete: ()-> Unit, isVisible : Boolean, changeVisibility: ()-> Unit) {
+fun ImageSignature(
+    modifier: Modifier = Modifier,
+    iSignatureInfo: ISignatureInfo,
+    onClickDelete: () -> Unit,
+    isVisible: Boolean,
+    changeVisibility: () -> Unit
+) {
     val localDensity = LocalDensity.current
-    val canvasHeight = with(localDensity) { pathInfo.height.toDp() }
-    val canvasWidth = with(localDensity) { pathInfo.width.toDp() }
     var canvasScale by remember {
-        mutableFloatStateOf(pathInfo.scale)
+        mutableFloatStateOf(iSignatureInfo.scale)
     }
     var canvasOffsetX by remember {
-        mutableFloatStateOf(pathInfo.offset.x)
+        mutableFloatStateOf(iSignatureInfo.offset.x)
     }
     var canvasOffsetY by remember {
-        mutableFloatStateOf(pathInfo.offset.y)
+        mutableFloatStateOf(iSignatureInfo.offset.y)
     }
     Box(
         modifier
             .offset { IntOffset(x = canvasOffsetX.toInt(), y = canvasOffsetY.toInt()) }
             .scale(canvasScale)
-            .pointerInput(Unit){
+            .pointerInput(Unit) {
                 detectTapGestures {
                     changeVisibility()
                 }
@@ -67,26 +66,21 @@ fun Signature(modifier: Modifier = Modifier, pathInfo: PathInfo, onClickDelete: 
                     // with scale we controlling amount of drag. Therefore, I am multiplying scale
                     canvasOffsetX += dragAmount.x * canvasScale
                     canvasOffsetY += dragAmount.y * canvasScale
-                    pathInfo.offset = Offset(x = canvasOffsetX, y = canvasOffsetY)
+                    iSignatureInfo.offset = Offset(x = canvasOffsetX, y = canvasOffsetY)
                 }
             }
     ) {
-        Canvas(
+        Image(
             modifier = Modifier
                 .padding(40.dp)
-                .border(width = 2.dp, color = if(isVisible) Color.Red else Color.Transparent)
-                .padding(16.dp)
-                .width(width = canvasWidth)
-                .height(height = canvasHeight)
-                .align(Alignment.Center)
-        ) {
-            drawPath(
-                path = pathInfo.path,
-                color = Color.Black,
-                style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
-            )
-        }
-        if(isVisible){
+                .border(width = 2.dp, color = if (isVisible) Color.Red else Color.Transparent)
+                .width(width = 200.dp)
+                .height(height = 200.dp)
+                .align(Alignment.Center),
+            bitmap = iSignatureInfo.bitmap,
+            contentDescription = "image Signature"
+        )
+        if (isVisible) {
             Box(
                 modifier = modifier
                     .size(36.dp)
@@ -112,7 +106,7 @@ fun Signature(modifier: Modifier = Modifier, pathInfo: PathInfo, onClickDelete: 
                         change.consume()
                         val newSize = canvasScale + scaleOnDrag(dragAmount)
                         canvasScale = minMaxScale(newSize)
-                        pathInfo.scale = canvasScale
+                        iSignatureInfo.scale = canvasScale
                     }
                 }) {
                 Icon(
@@ -124,29 +118,4 @@ fun Signature(modifier: Modifier = Modifier, pathInfo: PathInfo, onClickDelete: 
             }
         }
     }
-}
-
-fun scaleOnDrag(offset: Offset): Float {
-    return if (offset.x < 0 || offset.y < 0) minOf(offset.x, offset.y) / 200
-    else maxOf(offset.x, offset.y) / 200
-}
-
- fun minMaxScale(scale: Float): Float {
-    return scale.coerceIn(0.1f, 1.5f)
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun PreviewSignature() {
-    val localDensity = LocalDensity.current
-    val size = with(localDensity) {
-        100.dp.toPx()
-    }
-    val path = Path()
-    path.moveTo(0f, 0f)
-    path.lineTo(size, 0f)
-    path.lineTo(size, size)
-    path.lineTo(0f, size)
-    path.lineTo(0f, 0f)
-    Signature(pathInfo = PathInfo(path, size, size),  onClickDelete = {}, isVisible = true, changeVisibility = {})
 }

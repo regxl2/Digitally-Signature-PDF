@@ -2,6 +2,9 @@ package com.example.pdfsign.screens
 
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -13,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Done
@@ -39,22 +43,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.sp
 import com.example.pdfsign.composables.DrawSign
+import com.example.pdfsign.composables.ImageSignature
 import com.example.pdfsign.composables.Signature
 import com.example.pdfsign.utils.calculateDoubleTapOffset
 import com.example.pdfsign.utils.calculateNewOffset
+import com.example.pdfsign.utils.getBitmapFromUri
 import com.example.pdfsign.viewModels.SharedViewModel
 import dev.shreyaspatil.capturable.capturable
 import dev.shreyaspatil.capturable.controller.rememberCaptureController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class,
+@OptIn(
+    ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class,
     ExperimentalComposeApi::class
 )
 @Composable
@@ -68,6 +76,18 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
     val scope = rememberCoroutineScope()
     val imageIndex = viewModel.imageState.value?.index
     val localContext = LocalContext.current
+    val imagePickerLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.PickVisualMedia())
+        { uri ->
+            uri?.let {
+                getBitmapFromUri(localContext, it)?.asImageBitmap()
+                    ?.let { it1 ->
+                        if (imageIndex != null) {
+                            viewModel.addImageSignature(imageIndex, it1)
+                        }
+                    }
+            }
+        }
     if (openDrawSign) {
         BasicAlertDialog(onDismissRequest = { openDrawSign = false }) {
             DrawSign(modifier = Modifier
@@ -75,8 +95,7 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
                 .fillMaxWidth(), onClickDone = { pathInfo ->
                 openDrawSign = false
                 imageIndex?.let {
-                    viewModel.addPath(it, pathInfo)
-                    viewModel.addIsVisible(it, true)
+                    viewModel.addSignature(it, pathInfo)
                 }
             }) {
                 openDrawSign = false
@@ -100,6 +119,19 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
                 ), actions = {
+                    IconButton(onClick = {
+                        imagePickerLauncher.launch(
+                            PickVisualMediaRequest(
+                                ActivityResultContracts.PickVisualMedia.ImageOnly
+                            )
+                        )
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "add image signature",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
                     IconButton(onClick = { openDrawSign = true }) {
                         Icon(
                             imageVector = Icons.Default.Create,
@@ -110,13 +142,15 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
                     IconButton(onClick = {
                         zoom = 1f
                         offset = Offset.Zero
-                        scope.launch(Dispatchers.Default){
-                            imageIndex?.let { viewModel.resetIsSignVisibleList(imageIndex) }
+                        scope.launch(Dispatchers.Default) {
+                            imageIndex?.let {
+                                viewModel.resetIsSignAllVisibleList(imageIndex)
+                            }
                             val bitmapAsync = captureController.captureAsync()
                             try {
                                 val bitmap = bitmapAsync.await()
                                 imageIndex?.let {
-                                    viewModel.addPdfRenderImage(it, bitmap)
+                                    viewModel.addPdfRenderAltImage(it, bitmap)
                                 }
                             } catch (error: Throwable) {
                                 Log.e("PDFPageEdit", "PDFPageEdit: ", error)
@@ -143,10 +177,12 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
         ) {
             val image = viewModel.imageState.value?.imageBitmap
             if (image != null) {
-                val signatures = viewModel.hashMap[imageIndex]!!.signatures
-                val isSignVisibleList = viewModel.hashMap[imageIndex]!!.isSignVisible
+                val signatures = viewModel.signaturesInfoHashMap[imageIndex]!!.signatures
+                val isSignVisibleList = viewModel.signaturesInfoHashMap[imageIndex]!!.isSignVisible
+                val imageSignature = viewModel.imageSignaturesInfoHashMap[imageIndex]!!.signatures
+                val isISignVisibleList =
+                    viewModel.imageSignaturesInfoHashMap[imageIndex]!!.isSignVisible
                 Box(modifier = Modifier
-                    .capturable(captureController)
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onDoubleTap = { tapOffset ->
@@ -155,7 +191,7 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
                             },
                             onTap = {
                                 imageIndex?.let { index ->
-                                    viewModel.resetIsSignVisibleList(index)
+                                    viewModel.resetIsSignAllVisibleList(index)
                                 }
                             }
                         )
@@ -176,7 +212,7 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
                         scaleX = zoom; scaleY = zoom
                         transformOrigin = TransformOrigin(0f, 0f)
                     }
-                    , contentAlignment = Alignment.Center
+                    .capturable(captureController), contentAlignment = Alignment.Center
                 ) {
                     Image(
                         modifier = Modifier
@@ -186,6 +222,18 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
                         contentDescription = "pdf page",
                         contentScale = ContentScale.FillWidth
                     )
+                    imageSignature.forEachIndexed { index, iSignatureInfo ->
+                        ImageSignature(
+                            iSignatureInfo = iSignatureInfo,
+                            onClickDelete = {
+                                imageIndex?.let {
+                                    viewModel.removeImageSignatureAtIndex(imageIndex, index)
+                                }
+                            },
+                            isVisible = isISignVisibleList[index],
+                            changeVisibility = { isISignVisibleList[index] = true }
+                        )
+                    }
                     signatures.forEachIndexed { index, pathInfo ->
                         Signature(
                             pathInfo = pathInfo,
