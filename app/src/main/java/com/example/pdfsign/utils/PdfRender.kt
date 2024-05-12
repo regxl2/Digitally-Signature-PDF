@@ -50,7 +50,6 @@ class PdfRender(
         val density: Float
     ) {
         private var isLoaded = false
-
         private var job: Job? = null
 
         private val dimension = pdfRenderer.openPage(index).use { currentPage ->
@@ -87,6 +86,27 @@ class PdfRender(
                         isLoaded = true
                         pageContent.emit(newBitmap)
                     }
+                }
+            }
+        }
+        suspend fun loadForExport() {
+            if (!isLoaded) {
+                mutex.withLock {
+                    val newBitmap: Bitmap
+                    pdfRenderer.openPage(index).use { currentPage ->
+                        newBitmap = createBlankBitmap(
+                            width = currentPage.width*density.toInt(),
+                            height = currentPage.height*density.toInt()
+                        )
+                        currentPage.render(
+                            newBitmap,
+                            null,
+                            null,
+                            PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY
+                        )
+                    }
+                    isLoaded = true
+                    pageContent.emit(newBitmap)
                 }
             }
         }

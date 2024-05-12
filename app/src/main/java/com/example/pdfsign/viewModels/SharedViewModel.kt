@@ -57,6 +57,9 @@ class SharedViewModel : ViewModel() {
     var pdfRender = mutableStateOf<PdfRender?>(null)
         private set
 
+    var exportPdfRender: PdfRender? = null
+        private set
+
     var signaturesInfoHashMap = hashMapOf<Int, SignaturesInfo>()
         private set
 
@@ -84,6 +87,9 @@ class SharedViewModel : ViewModel() {
 
     fun setPdfRender(pdfRender: PdfRender) {
         this.pdfRender.value = pdfRender
+    }
+    fun setExportPdfRender(pdfRender: PdfRender) {
+        this.exportPdfRender = pdfRender
     }
 
     fun addSignature(pageIndex: Int, pathInfo: PathInfo) {
