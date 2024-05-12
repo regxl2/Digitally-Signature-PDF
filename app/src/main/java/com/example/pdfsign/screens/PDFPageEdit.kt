@@ -187,7 +187,7 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
                         Toast.makeText(localContext, "Saved the changes", Toast.LENGTH_LONG).show()
                     }) {
                         Icon(
-                            painter = painterResource(id = R.drawable.save),
+                            imageVector = Icons.Default.Done,
                             contentDescription = "save changes",
                             tint = MaterialTheme.colorScheme.onPrimary
                         )

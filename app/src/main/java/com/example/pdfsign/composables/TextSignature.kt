@@ -77,7 +77,7 @@ fun TextSignature(
                 .padding(16.dp)
                 .align(Alignment.Center),
             text = tSignatureInfo.name,
-            color = MaterialTheme.colorScheme.onPrimary,
+            color = Color.Black,
             fontStyle = FontStyle.Italic,
             fontFamily = FontFamily.Cursive,
             fontWeight = FontWeight.Bold
