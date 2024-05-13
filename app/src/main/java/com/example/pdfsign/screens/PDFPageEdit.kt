@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Create
@@ -74,7 +75,6 @@ import dev.shreyaspatil.capturable.controller.rememberCaptureController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(
     ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class,
     ExperimentalComposeApi::class
@@ -139,7 +139,7 @@ fun PDFPageEdit(viewModel: SharedViewModel, navigateBackToPdfPicker: () -> Unit)
                 navigationIcon = {
                     IconButton(onClick = navigateBackToPdfPicker) {
                         Icon(
-                            imageVector = Icons.Filled.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "up button",
                             tint = MaterialTheme.colorScheme.onPrimary
                         )

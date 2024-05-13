@@ -9,11 +9,9 @@ import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
 import android.net.Uri
-import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
-import androidx.annotation.RequiresApi
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
@@ -54,7 +52,6 @@ sealed interface Result {
 const val PDF_WIDTH = 794
 const val PDF_HEIGHT = 1123
 
-@RequiresApi(Build.VERSION_CODES.Q)
 suspend fun generatePdf(
     context: Context,
     pdfRender: PdfRender,
@@ -69,15 +66,22 @@ suspend fun generatePdf(
         val pageInfo = PdfDocument.PageInfo.Builder(width, height, index + 1).create()
         val newPage = pdfDocument.startPage(pageInfo)
         if (pdfAltHashMap[index]?.value != null) {
-            val bitmap = pdfAltHashMap[index]?.value?.asAndroidBitmap()?.copy(Bitmap.Config.ARGB_8888, false)
+            val bitmap =
+                pdfAltHashMap[index]?.value?.asAndroidBitmap()?.copy(Bitmap.Config.ARGB_8888, false)
             bitmap?.let {
-                newPage.canvas.drawBitmap(getResizedBitmap(it, width, height), 0f, 0f, null)
+                val scaledBitmap = getResizedBitmap(it, width, height)
+                newPage.canvas.drawBitmap(scaledBitmap, 0f, 0f, null)
+                scaledBitmap.recycle()
+                it.recycle()
             }
         } else {
             pdfRender.pageLists[index].loadForExport()
             val bitmap =
                 pdfRender.pageLists[index].pageContent.value?.let { Bitmap.createBitmap(it) }
-            bitmap?.let { newPage.canvas.drawBitmap(it, 0f, 0f, null) }
+            bitmap?.let {
+                newPage.canvas.drawBitmap(it, 0f, 0f, null)
+                it.recycle()
+            }
             pdfRender.pageLists[index].recycle()
         }
         pdfDocument.finishPage(newPage)
@@ -140,7 +144,6 @@ fun getResizedBitmap(bm: Bitmap, newWidth: Int, newHeight: Int): Bitmap {
     val canvas = Canvas(resizedBitmap)
     val paint = Paint(Paint.FILTER_BITMAP_FLAG)
     canvas.drawBitmap(bm, matrix, paint)
-    bm.recycle()
     return resizedBitmap
 }
 

@@ -1,7 +1,9 @@
 package com.example.pdfsign
 
 import android.annotation.SuppressLint
+import android.os.Build
 import android.os.Parcelable
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.EaseOut
 import androidx.compose.animation.core.tween
@@ -25,6 +27,7 @@ enum class Screen {
 
 @Parcelize
 data class Image(val bitmap: @RawValue ImageBitmap) : Parcelable
+
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
