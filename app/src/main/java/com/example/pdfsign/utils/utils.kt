@@ -4,7 +4,9 @@ import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.Matrix
+import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import android.os.Build
@@ -122,18 +124,23 @@ fun getBitmapFromUri(context: Context, uri: Uri): Bitmap? {
 fun getResizedBitmap(bm: Bitmap, newWidth: Int, newHeight: Int): Bitmap {
     val width = bm.width
     val height = bm.height
-    val scaleWidth = (newWidth.toFloat()) / width
-    val scaleHeight = (newHeight.toFloat()) / height
-    // CREATE A MATRIX FOR THE MANIPULATION
-    val matrix: Matrix = Matrix()
-    // RESIZE THE BIT MAP
+
+    // Calculate the scale factor for width and height
+    val scaleWidth = newWidth.toFloat() / width
+    val scaleHeight = newHeight.toFloat() / height
+
+    // Create a new matrix for the manipulation
+    val matrix = Matrix()
+
+    // Resize the bitmap
     matrix.postScale(scaleWidth, scaleHeight)
 
-    // "RECREATE" THE NEW BITMAP
-    val resizedBitmap = Bitmap.createBitmap(
-        bm, 0, 0, width, height, matrix, false
-    )
-    bm.recycle()
+    // Recreate the new bitmap using sampling to maintain quality
+    val resizedBitmap = Bitmap.createBitmap(newWidth, newHeight, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(resizedBitmap)
+    val paint = Paint(Paint.FILTER_BITMAP_FLAG)
+    canvas.drawBitmap(bm, matrix, paint)
+
     return resizedBitmap
 }
 
