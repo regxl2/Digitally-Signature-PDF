@@ -1,20 +1,20 @@
 package com.example.pdfsign.screens
 
 import android.net.Uri
-import android.os.Build
 import android.os.ParcelFileDescriptor
 import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
@@ -55,12 +55,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
-@RequiresApi(Build.VERSION_CODES.Q)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PdfPicker(viewModel: SharedViewModel, navigateToPdfPageEdit: (ImageInfo) -> Unit) {
     val pdfRender = viewModel.pdfRender.value
-    var isProgressVisible by remember {
+    var isLoading by remember {
+        mutableStateOf(false)
+    }
+    var isSaving by remember {
         mutableStateOf(false)
     }
     val scope = rememberCoroutineScope()
@@ -68,7 +70,7 @@ fun PdfPicker(viewModel: SharedViewModel, navigateToPdfPageEdit: (ImageInfo) -> 
     val pdfPickerLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri ->
             uri?.let {
-                isProgressVisible = true
+                isLoading = true
                 scope.launch(Dispatchers.Default) {
                     copyExternalFile(context, uri) { file ->
                         viewModel.setPdfRender(
@@ -90,7 +92,7 @@ fun PdfPicker(viewModel: SharedViewModel, navigateToPdfPageEdit: (ImageInfo) -> 
                             )
                         )
                     }
-                    isProgressVisible = false
+                    isLoading = false
                 }
             }
         }
@@ -146,9 +148,9 @@ fun PdfPicker(viewModel: SharedViewModel, navigateToPdfPageEdit: (ImageInfo) -> 
                                     }
                                 }
                                 scope.launch {
-                                    isProgressVisible = true
+                                    isSaving = true
                                     val result = deferredResult.await()
-                                    isProgressVisible = false
+                                    isSaving = false
                                     if (result is Result.Success) {
                                         Toast.makeText(context, result.msg, Toast.LENGTH_LONG)
                                             .show()
@@ -167,8 +169,8 @@ fun PdfPicker(viewModel: SharedViewModel, navigateToPdfPageEdit: (ImageInfo) -> 
                             )
                         }
                     }
-                    if (isProgressVisible) {
-                        ProgressIndicator()
+                    if (isSaving) {
+                        ProgressIndicator("Please wait exporting PDF may take time")
                     }
                 }
                 PDFReader(
@@ -180,7 +182,7 @@ fun PdfPicker(viewModel: SharedViewModel, navigateToPdfPageEdit: (ImageInfo) -> 
         } else {
             ButtonProgressScreen(
                 modifier = Modifier.padding(paddingValues),
-                isProgressVisible = isProgressVisible,
+                isProgressVisible = isLoading,
                 pdfPickerLauncher = pdfPickerLauncher
             )
         }
@@ -201,29 +203,32 @@ fun ButtonProgressScreen(
             Text("Select the PDF")
         }
         if (isProgressVisible) {
-            ProgressIndicator()
+            ProgressIndicator("Loading")
         }
     }
 }
 
 @Composable
-fun ProgressIndicator() {
+fun ProgressIndicator(message: String) {
     Surface(
         modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White.copy(alpha = 0.5f))
+            .fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        Box {
+        Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center),
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.onBackground
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = message, color = MaterialTheme.colorScheme.onBackground)
         }
     }
 }
 
 
-@RequiresApi(Build.VERSION_CODES.Q)
 @Preview(showSystemUi = true)
 @Composable
 private fun PreviewPdfPicker() {

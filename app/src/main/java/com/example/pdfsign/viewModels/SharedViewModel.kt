@@ -193,6 +193,8 @@ class SharedViewModel : ViewModel() {
         viewModelScope.launch {
             pdfRender.value?.close()
             pdfRender.value = null
+            exportPdfRender?.close()
+            exportPdfRender = null
             println("clearing")
         }
     }

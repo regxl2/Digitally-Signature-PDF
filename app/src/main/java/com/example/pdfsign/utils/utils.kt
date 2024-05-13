@@ -108,7 +108,6 @@ suspend fun generatePdf(
             result = Result.Failure
         }
     }
-    pdfRender.close()
     pdfDocument.close()
     return result
 }
