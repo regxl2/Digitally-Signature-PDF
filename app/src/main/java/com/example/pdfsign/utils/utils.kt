@@ -140,7 +140,7 @@ fun getResizedBitmap(bm: Bitmap, newWidth: Int, newHeight: Int): Bitmap {
     val canvas = Canvas(resizedBitmap)
     val paint = Paint(Paint.FILTER_BITMAP_FLAG)
     canvas.drawBitmap(bm, matrix, paint)
-
+    bm.recycle()
     return resizedBitmap
 }
 
