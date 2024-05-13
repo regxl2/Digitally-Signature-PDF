@@ -29,8 +29,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.example.pdfsign.R
 import com.example.pdfsign.viewModels.ISignatureInfo
 
 @Composable
@@ -111,7 +113,7 @@ fun ImageSignature(
                 }) {
                 Icon(
                     modifier = Modifier.align(Alignment.Center),
-                    imageVector = Icons.Default.ArrowForward,
+                    painter = painterResource(id = R.drawable.width),
                     contentDescription = "resize signature",
                     tint = MaterialTheme.colorScheme.onPrimary
                 )

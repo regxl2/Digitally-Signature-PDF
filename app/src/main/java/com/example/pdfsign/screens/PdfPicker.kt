@@ -25,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -135,18 +136,28 @@ fun PdfPicker(viewModel: SharedViewModel, navigateToPdfPageEdit: (ImageInfo) -> 
                         }
                         IconButton(modifier = Modifier.padding(8.dp),
                             onClick = {
-                                val deferredResult = scope.async(Dispatchers.IO){
-                                    viewModel.exportPdfRender?.let { generatePdf(context = context, pdfRender = it, pdfAltHashMap = viewModel.pdfRenderAltHashMap) }
+                                val deferredResult = scope.async(Dispatchers.IO) {
+                                    viewModel.exportPdfRender?.let {
+                                        generatePdf(
+                                            context = context,
+                                            pdfRender = it,
+                                            pdfAltHashMap = viewModel.pdfRenderAltHashMap
+                                        )
+                                    }
                                 }
                                 scope.launch {
                                     isProgressVisible = true
                                     val result = deferredResult.await()
                                     isProgressVisible = false
-                                    if(result is Result.Success){
-                                        Toast.makeText(context, result.msg, Toast.LENGTH_LONG).show()
-                                    }
-                                    else{
-                                        Toast.makeText(context,"PDF file export failed", Toast.LENGTH_LONG).show()
+                                    if (result is Result.Success) {
+                                        Toast.makeText(context, result.msg, Toast.LENGTH_LONG)
+                                            .show()
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "PDF file export failed",
+                                            Toast.LENGTH_LONG
+                                        ).show()
                                     }
                                 }
                             }) {
@@ -156,7 +167,7 @@ fun PdfPicker(viewModel: SharedViewModel, navigateToPdfPageEdit: (ImageInfo) -> 
                             )
                         }
                     }
-                    if(isProgressVisible){
+                    if (isProgressVisible) {
                         ProgressIndicator()
                     }
                 }
@@ -197,15 +208,17 @@ fun ButtonProgressScreen(
 
 @Composable
 fun ProgressIndicator() {
-    Box(
+    Surface(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White.copy(alpha = 0.5f))
     ) {
-        CircularProgressIndicator(
-            modifier = Modifier.align(Alignment.Center),
-            color = MaterialTheme.colorScheme.primary
-        )
+        Box {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center),
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
     }
 }
 

@@ -33,9 +33,11 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.example.pdfsign.R
 import com.example.pdfsign.viewModels.PathInfo
 
 @Composable
@@ -117,7 +119,7 @@ fun Signature(modifier: Modifier = Modifier, pathInfo: PathInfo, onClickDelete: 
                 }) {
                 Icon(
                     modifier = Modifier.align(Alignment.Center),
-                    imageVector = Icons.Default.ArrowForward,
+                    painter = painterResource(id = R.drawable.width),
                     contentDescription = "resize signature",
                     tint = MaterialTheme.colorScheme.onPrimary
                 )
