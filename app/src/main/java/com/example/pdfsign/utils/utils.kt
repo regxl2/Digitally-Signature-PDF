@@ -4,9 +4,8 @@ import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Canvas
+import android.graphics.Matrix
 import android.graphics.pdf.PdfDocument
-import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -17,13 +16,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.IntSize
-import androidx.core.graphics.createBitmap
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
@@ -76,7 +69,7 @@ suspend fun generatePdf(
         if (pdfAltHashMap[index]?.value != null) {
             val bitmap = pdfAltHashMap[index]?.value?.asAndroidBitmap()?.copy(Bitmap.Config.ARGB_8888, false)
             bitmap?.let {
-                newPage.canvas.drawBitmap(it, 0f, 0f, null)
+                newPage.canvas.drawBitmap(getResizedBitmap(it, width, height), 0f, 0f, null)
             }
         } else {
             pdfRender.pageLists[index].loadForExport()
@@ -114,21 +107,6 @@ suspend fun generatePdf(
     return result
 }
 
-private fun createBlankBitmap(
-    width: Int,
-    height: Int
-): Bitmap {
-    return createBitmap(
-        width,
-        height,
-        Bitmap.Config.ARGB_8888
-    ).apply {
-        val canvas = Canvas(this)
-        canvas.drawColor(android.graphics.Color.WHITE)
-        canvas.drawBitmap(this, 0f, 0f, null)
-    }
-}
-
 fun getBitmapFromUri(context: Context, uri: Uri): Bitmap? {
     var bitmap: Bitmap? = null
     try {
@@ -139,6 +117,24 @@ fun getBitmapFromUri(context: Context, uri: Uri): Bitmap? {
         Toast.makeText(context, "File not found", Toast.LENGTH_SHORT).show()
     }
     return bitmap
+}
+
+fun getResizedBitmap(bm: Bitmap, newWidth: Int, newHeight: Int): Bitmap {
+    val width = bm.width
+    val height = bm.height
+    val scaleWidth = (newWidth.toFloat()) / width
+    val scaleHeight = (newHeight.toFloat()) / height
+    // CREATE A MATRIX FOR THE MANIPULATION
+    val matrix: Matrix = Matrix()
+    // RESIZE THE BIT MAP
+    matrix.postScale(scaleWidth, scaleHeight)
+
+    // "RECREATE" THE NEW BITMAP
+    val resizedBitmap = Bitmap.createBitmap(
+        bm, 0, 0, width, height, matrix, false
+    )
+    bm.recycle()
+    return resizedBitmap
 }
 
 
