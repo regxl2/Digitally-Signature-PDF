@@ -21,7 +21,7 @@ This application facilitates basic digital signature capabilities, including dra
 
 ## Video Preview 
 
-<a href="">Click here to watch the video of the app</a>
+<a href="https://youtu.be/tVC8sE1c4VI">Click here to watch the video of the app</a>
 
 ## Prerequisites
 
